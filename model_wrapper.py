@@ -1,10 +1,12 @@
 import abc
 
 
+# base class of model wrapper
 class BaseModelWrapper(abc.ABC):
     def __init__(self, model):
         self._model = model
     
+    # get model
     @property
     def model(self):
         return self._model
@@ -38,10 +40,12 @@ class BaseStudentWrapper(BaseModelWrapper):
     def __init__(self, model):
         super().__init__(model)
 
+    # loss function used when distilling
     @abc.abstractmethod
     def distill_loss_function(self, *args, **kwargs):
         pass
     
+    # loss function used when evaluating
     @abc.abstractclassmethod
     def eval_loss_function(self, *args, **kwargs):
         pass

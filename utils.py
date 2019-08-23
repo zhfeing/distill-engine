@@ -15,7 +15,8 @@ def _identical_mapping(x):
 def eval_model(
     model_wrapper: model_wrapper.BaseStudentWrapper, 
     data_loader: DataLoader, 
-    use_cuda=True
+    use_cuda=True, 
+    cuda_device=None
 ):
     """
     eval_loss_function: calculate loss from output and ground truth, in the function, it will be called as :
@@ -26,20 +27,22 @@ def eval_model(
     """
     model_wrapper.model.eval()
     if use_cuda:
-        model_wrapper.model.cuda()
-        map_to_cuda = lambda x: x.cuda()
+        model_wrapper.model.cuda(cuda_device)
+        map_to_device = lambda x: x.cuda(cuda_device)
     else:
         model_wrapper.model.cpu()
-        map_to_cuda = lambda x: x
+        map_to_device = lambda x: x.cpu()
 
     acc = 0
     loss = 0
     num = len(data_loader)
     for step, (x, y) in enumerate(data_loader):
         batch_size = x.size()[0]
-        x = map_to_cuda(x)
-        y = map_to_cuda(y)
+        x = map_to_device(x)
+        y = map_to_device(y)
+        # get detached output
         pred = model_wrapper.detached_call(x)
+        # get loss and acc
         loss += model_wrapper.eval_loss_function(y_s=pred, y_true=y)
         pred = model_wrapper.get_detached_true_predict(pred)
         pred = torch.max(pred, 1)[1]
@@ -56,17 +59,13 @@ class MyDistillLoss(object):
         self._T = T
         self._alpha = alpha
 
+    # calculate KL Divergence
     def _kl_div(self, pred, target):
         R = nn.Softmax(dim=1)(target/self._T)
         Q = nn.Softmax(dim=1)(pred/self._T)
         loss = R*(R.log() - Q.log())
         loss = loss.sum(dim=1)
         loss = loss.mean()
-
-        if torch.isnan(loss):
-            print("{}, {}, {}".format(pred, pred.max(), pred.min()))
-            raise Exception("[Exception] hard loss is nan")
-
         return loss
     
     def __call__(self, y_s, y_t, y_true):
@@ -74,7 +73,8 @@ class MyDistillLoss(object):
         soft_loss = self._T * self._T * self._kl_div(y_s, y_t)
         if torch.isnan(soft_loss):
             raise Exception("[Exception] soft loss is nan")
-
+        if torch.isnan(hard_loss):
+            raise Exception("[Exception] soft loss is nan")
         return self._alpha * hard_loss + (1 - self._alpha) * soft_loss
 
 

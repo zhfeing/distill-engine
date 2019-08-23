@@ -62,19 +62,25 @@ class TeacherWrapper(model_wrapper.BaseTeacherWrapper):
         return predit.detach()
 
         
-# callbacks
+# define callbacks
 class MyCallback(callback.BaseCallback):
-    def __init__(self, save_model_dir, version, check_freq):
-        self._loss = list()
-        self._acc = list()
+    def __init__(
+        self, 
+        save_model_dir,     # directory to save models
+        version,            # training version
+        check_freq          # check loss, acc and possibly save model after check_freq steps
+    ):
+        self._loss = list()                         # loss history
+        self._acc = list()                          # accuracy history
 
         self._save_model_dir = save_model_dir
         self._version = version
         self._check_freq = check_freq
 
-        self._epoch_best_loss = np.inf
-        self._epoch_best_acc = 0
+        self._epoch_best_loss = np.inf              # best loss performance of an epoch
+        self._epoch_best_acc = 0                    # best acc performance of an epoch
     
+    # learn rate schedule
     def _learn_rate_schedule(self, epoch, optimizer):
         if epoch == 40 or epoch == 60:
             for param_group in optimizer.param_groups:
@@ -91,16 +97,15 @@ class MyCallback(callback.BaseCallback):
         valid_loader: DataLoader
     ):
         # pick optimal model
-        # get best model
         print("[info]: getting best model...")
         # best final acc
         best_final_id = np.argmax(self._acc)
         print("[info]: best final id: {}, val acc: {:.4f}".format(best_final_id, self._acc[best_final_id]))
 
-        # get best epoch model
         best_epoch_acc_val = np.array(list())
         best_epoch_loss_val = np.array(list())
 
+        # get best models of its epoch
         for ep in range(logs["total_epoch"]):
             student_wrapper.model.load_state_dict(
                 torch.load(
@@ -119,6 +124,7 @@ class MyCallback(callback.BaseCallback):
 
         best_epoch_id = np.argmax(best_epoch_acc_val)
         print("[info]: best epoch val acc: {:.4f}".format(best_epoch_acc_val[best_epoch_id]))
+        # choose from batch final module or batch best module
         if self._acc[best_final_id] > best_epoch_acc_val[best_epoch_id]:
             print("[info]: choose batch final module")
             student_wrapper.model.load_state_dict(
@@ -135,7 +141,7 @@ class MyCallback(callback.BaseCallback):
                                 format(self._version, best_epoch_id))
                 )
             )
-
+        # save best model
         torch.save(
             student_wrapper.model.state_dict(),
             utils.join(
@@ -152,9 +158,8 @@ class MyCallback(callback.BaseCallback):
         self._epoch_best_acc = 0
         # adjust learning rate
         if logs["ep"] is None:
-            raise Exception("epoch is not given")
+            raise Exception("Bug: epoch is not given")
         self._learn_rate_schedule(logs["ep"], states["optimizer"])
-
         print("[info] start epoch {:4}".format(logs["ep"]))
 
     def on_epoch_end(
@@ -169,12 +174,12 @@ class MyCallback(callback.BaseCallback):
             model_wrapper=student_wrapper,
             data_loader=valid_loader
         )
-
         self._loss.append(val_loss)
         self._acc.append(val_acc)
 
         print("[info]: val loss: {:5f}, val acc: {:4f}".format(val_loss, val_acc))
 
+        # save epoch final model
         torch.save(
             student_wrapper.model.state_dict(),
             utils.join(
@@ -193,6 +198,7 @@ class MyCallback(callback.BaseCallback):
                 max_rotate_angle=15,
                 max_scale=1.2
         )
+        # take a look per check_freq
         if logs["step"] % self._check_freq == self._check_freq - 1:
             print("\r[info] epoch: {:2}/{:2} step: {:4}/{:4}".format(
                 logs["ep"], 
@@ -202,6 +208,7 @@ class MyCallback(callback.BaseCallback):
             ), end="\t")
 
     def on_batch_end(self, logs: dict, tensors: dict, student_wrapper: model_wrapper.BaseStudentWrapper):
+        # have a check per check_freq
         if logs["step"] % self._check_freq == self._check_freq - 1:
             batch_size = tensors["x"].size()[0]
             pred = torch.max(student_wrapper.get_detached_true_predict(tensors["y_s"]), 1)[1]
@@ -210,7 +217,7 @@ class MyCallback(callback.BaseCallback):
                 tensors["loss"], 
                 acc
             ), end="")
-
+            # if model at this checkpoint performance better then save it
             if tensors["loss"].item() < self._epoch_best_loss and acc.item() > self._epoch_best_acc:
                 self._epoch_best_loss = tensors["loss"].item()
                 self._epoch_best_acc = acc.item()

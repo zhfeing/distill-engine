@@ -35,7 +35,7 @@ check_freq = args.check_freq
 
 # get data
 train_set, valid_set, test_set = get_data.import_dataset(
-    load_dir="./get_data/data", 
+    load_dir="get_data/data", 
     train_to_cuda=False, 
     test_to_cuda=False
 )
