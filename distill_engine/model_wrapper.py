@@ -1,9 +1,10 @@
 import abc
+from torch.nn import Module
 
 
 # base class of model wrapper
 class BaseModelWrapper(abc.ABC):
-    def __init__(self, model):
+    def __init__(self, model: Module):
         self._model = model
     
     # get model
@@ -11,12 +12,12 @@ class BaseModelWrapper(abc.ABC):
     def model(self):
         return self._model
     
-    def __call__(self, *input):
+    def __call__(self, *x):
         """simply return model output"""
-        return self._model(*input)
+        return self._model(*x)
 
     @abc.abstractmethod
-    def detached_call(self, *input):
+    def detached_call(self, *x):
         """simply return model detached output"""
         pass
 

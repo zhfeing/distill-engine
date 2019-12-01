@@ -1,9 +1,9 @@
 import numpy as np
 import pickle
 import os
-from get_data import data_prams
-from get_data.data_prams import train_batch_num
-from get_data import data_augmentation
+from . import data_prams
+from .data_prams import train_batch_num
+from . import data_augmentation
 
 
 def get_raw_data(cifar_10_dir):
@@ -12,7 +12,7 @@ def get_raw_data(cifar_10_dir):
     return: train_x, train_y, test_x, test_y, label_names (train_x and test_x are in RGB channel last)
     """
     # load meta data
-    meta_data_dir = os.path.join(cifar_10_dir, data_parms.meta_file_name)
+    meta_data_dir = os.path.join(cifar_10_dir, data_prams.meta_file_name)
     with open(meta_data_dir, "rb") as meta_file:
         meta_dict = pickle.load(meta_file, encoding='bytes')
     batch_size = meta_dict[b'num_cases_per_batch']  # 10000
@@ -26,7 +26,7 @@ def get_raw_data(cifar_10_dir):
     train_x = np.zeros([train_batch_num * batch_size, data_len]).astype(np.uint8)
     train_label = np.zeros([train_batch_num * batch_size]).astype(np.uint8)
     for bn in range(train_batch_num):
-        train_file_dir = os.path.join(cifar_10_dir, data_parms.train_file_name_prefix.format(bn + 1))
+        train_file_dir = os.path.join(cifar_10_dir, data_prams.train_file_name_prefix.format(bn + 1))
         with open(train_file_dir, "rb") as train_file:
             train_dict = pickle.load(train_file, encoding='bytes')
         print("load " + train_dict[b'batch_label'].decode('utf-8'))
@@ -36,7 +36,7 @@ def get_raw_data(cifar_10_dir):
     train_x = train_x.reshape([-1, 3, 32, 32]).transpose([0, 2, 3, 1])
 
     # get test dataset
-    test_file_dir = os.path.join(cifar_10_dir, data_parms.test_file_name)
+    test_file_dir = os.path.join(cifar_10_dir, data_prams.test_file_name)
     with open(test_file_dir, "rb") as test_file:
         test_dict = pickle.load(test_file, encoding='bytes')
     print("load " + test_dict[b'batch_label'].decode('utf-8'))

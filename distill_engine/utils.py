@@ -2,7 +2,8 @@ import os
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-import model_wrapper
+from .model_wrapper import BaseStudentWrapper
+import tqdm
 
 
 join = os.path.join
@@ -12,11 +13,11 @@ def _identical_mapping(x):
     return x
 
 
+@torch.no_grad()
 def eval_model(
-    model_wrapper: model_wrapper.BaseStudentWrapper, 
+    student_wrapper: BaseStudentWrapper, 
     data_loader: DataLoader, 
-    use_cuda=True, 
-    cuda_device=None
+    device: torch.device
 ):
     """
     eval_loss_function: calculate loss from output and ground truth, in the function, it will be called as :
@@ -25,32 +26,27 @@ def eval_model(
         true_pred = get_true_pred(module_output)
     detach_pred: detach pred from output, useful when model output a tuple, called as detach_pred(module_output)
     """
-    model_wrapper.model.eval()
-    if use_cuda:
-        model_wrapper.model.cuda(cuda_device)
-        map_to_device = lambda x: x.cuda(cuda_device)
-    else:
-        model_wrapper.model.cpu()
-        map_to_device = lambda x: x.cpu()
+    student_wrapper.model.eval()
+    student_wrapper.model.to(device)
 
     acc = 0
     loss = 0
     num = len(data_loader)
-    for step, (x, y) in enumerate(data_loader):
+    for x, y in tqdm.tqdm(data_loader):
         batch_size = x.size()[0]
-        x = map_to_device(x)
-        y = map_to_device(y)
+        x = x.to(device)
+        y = y.to(device)
         # get detached output
-        pred = model_wrapper.detached_call(x)
+        pred = student_wrapper(x)
+        pred = student_wrapper.get_detached_true_predict(pred)
         # get loss and acc
-        loss += model_wrapper.eval_loss_function(y_s=pred, y_true=y)
-        pred = model_wrapper.get_detached_true_predict(pred)
+        loss += student_wrapper.eval_loss_function(y_s=pred, y_true=y)
         pred = torch.max(pred, 1)[1]
         acc += (pred == y).sum().float() / batch_size
 
     loss /= num
     acc /= num
-    return loss.item(), acc.item()
+    return loss.to("cpu").item(), acc.to("cpu").item()
 
 
 class MyDistillLoss(object):
@@ -76,12 +72,3 @@ class MyDistillLoss(object):
         if torch.isnan(hard_loss):
             raise Exception("[Exception] soft loss is nan")
         return self._alpha * hard_loss + (1 - self._alpha) * soft_loss
-
-
-# def str2bool(v):
-#     if v.lower() in ('yes', 'true', 't', 'y', '1'):
-#         return True
-#     elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-#         return False
-#     else:
-#         raise argparse.ArgumentTypeError('Boolean value expected.')

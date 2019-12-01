@@ -1,6 +1,9 @@
 from torch import nn
 import torch.nn.functional as F
 import torch
+import numpy as np
+
+from .utils import total_params
 
 
 def get_block_output_size(channel_list):
@@ -250,8 +253,7 @@ def make_channel_list(*args):
     return channel_list
 
 
-def my_googLeNet():
-    import numpy as np
+def my_googLeNet(class_num):
     step_1_channel = 32
 
     parameters = [
@@ -267,7 +269,7 @@ def my_googLeNet():
     ]
 
     parameters = np.array(parameters)
-    parameters *= 2
+    parameters //= 2
     parameters = list(parameters)
 
     channel_lists = list()
@@ -295,28 +297,9 @@ def my_googLeNet():
     model = GoogLeNet(
         input_channel=3,
         step_1_channel=step_1_channel,
-        class_num=10,
+        class_num=class_num,
         channel_lists=channel_lists
     )
-
     return model
 
 
-if __name__ == "__main__":
-    import numpy as np
-    google_model = my_googLeNet()
-    params = list(google_model.parameters())
-    k = 0
-    for i in params:
-        l = 1
-        for j in i.size():
-            l *= j
-        k = k + l
-        # print(l)
-    k = format(k, ',')
-    print("total parameters: " + k)
-    #
-    x = np.random.random([1, 3, 32, 32])
-    x = torch.Tensor(x)
-    y, _, _ = google_model(x)
-    print(y.size())

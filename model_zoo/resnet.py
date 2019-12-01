@@ -134,36 +134,3 @@ class Resnet(nn.Module):
         x = self._classifier(x)
         return x
 
-
-def my_resnet():
-    model = Resnet(
-        n=5,
-        in_channels=3,
-        channel_base=16
-    )
-    return model
-
-
-def my_test():
-    import numpy as np
-
-    resnet_model = my_resnet()
-    params = list(resnet_model.parameters())
-    k = 0
-    for i in params:
-        l = 1
-        for j in i.size():
-            l *= j
-        k = k + l
-        # print(l)
-    k = format(k, ',')
-    print("total parameters: " + k)
-
-    x = np.random.random([1, 3, 32, 32])
-    x = torch.Tensor(x)
-    y = resnet_model(x)
-    print(y.size())
-
-
-if __name__ == "__main__":
-    my_test()
