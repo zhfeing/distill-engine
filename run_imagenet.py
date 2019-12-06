@@ -20,6 +20,9 @@ if __name__ == "__main__":
     parser.add_argument("--weight_decay", action="store", type=float, default=4e-5)
     parser.add_argument("--epoch", action="store", type=int, default=100)
     parser.add_argument("--batch_size", action="store", type=int, default=64)
+    parser.add_argument("--use_percentage", action="store", type=float)
+    parser.add_argument("--T", action="store", type=float)
+    parser.add_argument("--alpha", action="store", type=float)
 
     parser.add_argument("--check_freq", action="store", type=int, default=10)
     parser.add_argument("--check_valid_freq", action="store", type=int, default=10)
@@ -27,6 +30,7 @@ if __name__ == "__main__":
     parser.add_argument("--save_model_dir", action="store", type=str)
     parser.add_argument("--imagenet_root", action="store", type=str)
     parser.add_argument("--teacher_filepath", action="store", type=str)
+    parser.add_argument("--student_structure", action="store", type=str)
     parser.add_argument("--recover_checkpoint", action="store", type=str, default="")
     parser.add_argument("--logger_filepath", action="store", type=str, default="logger.txt")
 
@@ -46,7 +50,8 @@ if __name__ == "__main__":
     # get data
     train_dataset = get_data.imagenet.ImagenetDataset(
         imagenet_root=args.imagenet_root, 
-        key="train"
+        key="train", 
+        train_use_percentage=args.use_percentage
     )
     valid_dataset = get_data.imagenet.ImagenetDataset(
         imagenet_root=args.imagenet_root, 
@@ -71,8 +76,20 @@ if __name__ == "__main__":
     teacher_model.load_state_dict(torch.load(args.teacher_filepath, map_location=device))
     teacher_wrapper = distill_on_imagenet.ResnetTeacherWrapper(teacher_model)
 
-    student_model = model_zoo.googLeNet.my_googLeNet(class_num=1000)
-    student_wrapper = distill_on_imagenet.GoogLeNetStudentWrapper(student_model)
+    if args.student_structure == "my_googLeNet":
+        student_model = model_zoo.googLeNet.my_googLeNet(class_num=1000)
+        student_wrapper = distill_on_imagenet.GoogLeNetStudentWrapper(
+            model=student_model, 
+            alpha=args.alpha
+        )
+    elif args.student_structure == "resnet18":
+        student_model = torchvision.models.resnet18()
+        student_wrapper = distill_on_imagenet.ResnetStudentWrapper(
+            model=student_model, 
+            alpha=args.alpha
+        )
+    else:
+        raise Exception("student structure {} does not support".format(args.student_structure))
 
     recover_checkpoint = None
     if args.recover_checkpoint != "":

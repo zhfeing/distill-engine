@@ -269,7 +269,7 @@ def my_googLeNet(class_num):
     ]
 
     parameters = np.array(parameters)
-    parameters //= 2
+    parameters //= 4
     parameters = list(parameters)
 
     channel_lists = list()

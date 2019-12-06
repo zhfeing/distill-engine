@@ -17,18 +17,8 @@ class BaseModelWrapper(abc.ABC):
         return self._model(*x)
 
     @abc.abstractmethod
-    def detached_call(self, *x):
-        """simply return model detached output"""
-        pass
-
-    @abc.abstractmethod
     def get_true_predict(self, predit):
         """return true prediction from its output"""
-        pass
-
-    @abc.abstractclassmethod
-    def get_detached_true_predict(self, predit):
-        """return true detached model prediction from graph"""
         pass
 
 

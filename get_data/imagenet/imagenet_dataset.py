@@ -3,6 +3,7 @@ from torchvision import transforms
 from os.path import join
 from PIL import Image
 import tqdm
+import random
 
 
 def read_list_from_file(filepath: str) -> list:
@@ -74,7 +75,7 @@ class LabelMap:
 
 
 class ImagenetDataset(Dataset):
-    def __init__(self, imagenet_root: str, key: str):
+    def __init__(self, imagenet_root: str, key: str, train_use_percentage=100.0):
         """Args:
         imagenet_root: path to ILSVRC
         key: key of dataset, can be any of {"train", "val"}
@@ -86,6 +87,13 @@ class ImagenetDataset(Dataset):
                 imagenet_root, 
                 "ImageSets/CLS-LOC/train_cls.txt"
             ))
+            k = int(len(self._img_list)*train_use_percentage/100)
+            self._img_list = random.sample(self._img_list, k)
+            print("[info] use {}% training examples, total {}.".format(
+                train_use_percentage, 
+                len(self._img_list))
+            )
+            
         elif key == "val":
             self._img_list = read_list_from_file(join(
                 imagenet_root, 

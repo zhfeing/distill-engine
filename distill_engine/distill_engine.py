@@ -57,9 +57,9 @@ class Distillation(object):
             states=self._states
         )
 
-        self._t.model.eval()
         # map model to device
         self._t.model.to(self._device)
+        self._t.model.eval()
         self._s.model.to(self._device)
 
         while self._logs["ep"] < self._logs["total_epoch"]:
@@ -75,7 +75,7 @@ class Distillation(object):
                     logs=self._logs
                 )
                 self._s.model.train()
-                
+
                 # map to gpu when enabled
                 self._tensors["x"] = self._tensors["x"].to(self._device)
                 self._tensors["y_true"] = self._tensors["y_true"].to(self._device)
@@ -88,8 +88,8 @@ class Distillation(object):
                 # calculate undetached distill loss
                 self._tensors["loss"] = self._s.distill_loss_function(
                     x=self._tensors["x"],
-                    y_t=self._t.get_detached_true_predict(self._tensors["y_t"]),    # detached y_t
-                    y_s=self._tensors["y_s"],                                       # undetached y_s
+                    y_t=self._t.get_true_predict(self._tensors["y_t"]),    # detached y_t
+                    y_s=self._tensors["y_s"],                              # undetached y_s
                     y_true=self._tensors["y_true"]
                 )
                 # bp

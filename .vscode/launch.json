@@ -1,0 +1,69 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        }, 
+        {
+            "name": "Python: 109 Distill on Imagenet",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_imagenet.py",
+            "console": "integratedTerminal", 
+            "args": [
+                "--gpu=1", 
+                "--num_workers=32", 
+                "--lr=4e-3", 
+                "--weight_decay=4e-5", 
+                "--epoch=100", 
+                "--batch_size=512", 
+                "--alpha=1", 
+                "--check_freq=2", 
+                "--check_valid_freq=100", 
+                "--save_model_dir=/disk3/zhfeing/project/distill-models", 
+                "--imagenet_root=/nfs2/zhfeing/dataset/ILSVRC", 
+                "--teacher_filepath=/nfs2/zhfeing/modelzoo/resnet152-b121ed2d.pth", 
+                "--student_structure=resnet18", 
+                "--version=v2.0", 
+                "--logger_filepath=/disk3/zhfeing/project/distill-models/v2.0_logger.txt", 
+                "--port=23456", 
+                "--recover_checkpoint=", 
+                "--use_percentage=100"
+            ]
+        }, 
+        {
+            "name": "Python: 207 Distill on Imagenet",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_imagenet.py",
+            "console": "integratedTerminal", 
+            "args": [
+                "--gpu=0", 
+                "--num_workers=32", 
+                "--lr=4e-3", 
+                "--weight_decay=4e-5", 
+                "--epoch=100", 
+                "--batch_size=256", 
+                "--alpha=0.7", 
+                "--check_freq=2", 
+                "--check_valid_freq=100", 
+                "--save_model_dir=/home/disk1/zhf/project/distill-engine", 
+                "--imagenet_root=/nfs2/zhfeing/dataset/ILSVRC", 
+                "--teacher_filepath=/nfs2/zhfeing/modelzoo/resnet152-b121ed2d.pth", 
+                "--student_structure=resnet18", 
+                "--port=23456", 
+                "--recover_checkpoint=", 
+                "--version=v2.0", 
+                "--logger_filepath=/home/disk1/zhf/project/distill-engine/v2.0_logger.txt", 
+                "--use_percentage=100"
+            ]
+        }
+    ]
+}

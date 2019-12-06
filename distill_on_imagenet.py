@@ -9,21 +9,13 @@ from utils import VisdomPlotLogger, MessageLogger
 
 # define teacher and student wrapper
 class GoogLeNetStudentWrapper(BaseStudentWrapper):
-    def __init__(self, model):
+    def __init__(self, model, alpha):
         super().__init__(model)
-        self._distill_loss = utils.MyDistillLoss(T=4, alpha=0.1)
+        self._distill_loss = utils.MyDistillLoss(alpha)
 
-    def detached_call(self, *x):
-        """simply return model detached output"""
-        return self.__call__(*x).detach()
-    
     def get_true_predict(self, predit):
         """return true prediction from its output"""
         return predit[0]
-
-    def get_detached_true_predict(self, predit):
-        """return true detached model prediction from graph"""
-        return predit[0].detach()
 
     @torch.no_grad()
     def eval_loss_function(self, *args, **kwargs):
@@ -49,23 +41,45 @@ class GoogLeNetStudentWrapper(BaseStudentWrapper):
         return loss
 
 
-class ResnetTeacherWrapper(BaseTeacherWrapper):
-    def __init__(self, model):
+class ResnetStudentWrapper(BaseStudentWrapper):
+    def __init__(self, model, alpha):
         super().__init__(model)
-        
-    def detached_call(self, *x):
-        """simply return model detached output"""
-        return self.__call__(*x).detach()
+        self._distill_loss = utils.MyDistillLoss(alpha)
 
     def get_true_predict(self, predit):
         """return true prediction from its output"""
         return predit
 
-    def get_detached_true_predict(self, predit):
-        """return true detached model prediction from graph"""
-        return predit.detach()
+    @torch.no_grad()
+    def eval_loss_function(self, *args, **kwargs):
+        """Required parameters: 
+        y_s: detached student true predict, 
+        y_true: detached ground truth"""
+        y_s = kwargs["y_s"]
+        y_true = kwargs["y_true"]
+        return nn.CrossEntropyLoss(reduction='mean')(y_s, y_true)
 
-        
+    def distill_loss_function(self, *args, **kwargs):
+        """Required parameters: 
+        y_t: detached teacher output, 
+        y_s: student output, 
+        y_true: ground truth"""
+        y_t = kwargs["y_t"]
+        y_s = kwargs["y_s"]
+        y_true = kwargs["y_true"]      
+        loss = self._distill_loss(y_s, y_t, y_true)
+        return loss
+
+
+class ResnetTeacherWrapper(BaseTeacherWrapper):
+    def __init__(self, model):
+        super().__init__(model)
+
+    def get_true_predict(self, predit):
+        """return true prediction from its output"""
+        return predit
+
+
 # define callbacks
 class TrainCallback(callback.BaseCallback):
     """Callback requires keys: 
@@ -128,8 +142,8 @@ class TrainCallback(callback.BaseCallback):
         if self._recover_ckpt is None:
             self._message_logger.log("[info] start training with {} epochs".format(logs["total_epoch"]))
         else:
-            logs["ep"] = self._recover_ckpt["ep"]
-            logs["iter"] = self._recover_ckpt["iter"]
+            logs["ep"] = self._recover_ckpt["ep"] + 1
+            logs["iter"] = self._recover_ckpt["iter"] + 1
             states["optimizer"] = self._recover_ckpt["optimizer"]
             student_wrapper.model.load_state_dict(self._recover_ckpt["student_model"])
 
@@ -140,7 +154,7 @@ class TrainCallback(callback.BaseCallback):
         logs = kwargs["logs"]
         states = kwargs["states"]
         self._message_logger.log("[info] start epoch {:4}".format(logs["ep"]))
-        if logs["ep"] % 30 == 0 and logs["ep"] > 0:
+        if logs["ep"] % 80 == 0 and logs["ep"] > 0:
             self._message_logger.log("[info] learning rate decreased by 10")
             for param_group in states["optimizer"].param_groups:
                 param_group['lr'] /= 10
@@ -184,19 +198,23 @@ class TrainCallback(callback.BaseCallback):
         # have a check per check_freq
         if logs["iter"] % self._check_freq == self._check_freq - 1:
             batch_size = tensors["x"].size()[0]
-            pred = torch.max(student_wrapper.get_detached_true_predict(tensors["y_s"]), 1)[1]
+            pred = torch.max(student_wrapper.get_true_predict(tensors["y_s"]), 1)[1]
             acc = (pred == tensors["y_true"]).sum().float() / batch_size
             self._message_logger.log("loss: {:.5f}, acc: {:.4f}".format(
                 tensors["loss"], 
                 acc
             ))
             self._loss_logger.log(logs["iter"], tensors["loss"].item(), name="train loss")
-            self._acc_logger.log(logs["iter"], acc.item(), name="train acc")
+            # self._acc_logger.log(logs["iter"], acc.item(), name="train acc")
         if logs["iter"] % self._check_valid_freq == self._check_valid_freq - 1:
             loss, acc = utils.eval_model(
                 student_wrapper=student_wrapper, 
                 data_loader=valid_loader, 
                 device=tensors["x"].device
             )
+            self._message_logger.log("[info] validate loss: {:.5f}, acc: {:.4f}".format(
+                loss, 
+                acc
+            ))
             self._loss_logger.log(logs["iter"], loss, name="valid loss")
             self._acc_logger.log(logs["iter"], acc, name="valid acc")
