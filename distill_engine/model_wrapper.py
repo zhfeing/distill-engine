@@ -6,12 +6,12 @@ from torch.nn import Module
 class BaseModelWrapper(abc.ABC):
     def __init__(self, model: Module):
         self._model = model
-    
+
     # get model
     @property
     def model(self):
         return self._model
-    
+
     def __call__(self, *x):
         """simply return model output"""
         return self._model(*x)
@@ -35,7 +35,7 @@ class BaseStudentWrapper(BaseModelWrapper):
     @abc.abstractmethod
     def distill_loss_function(self, *args, **kwargs):
         pass
-    
+
     # loss function used when evaluating
     @abc.abstractclassmethod
     def eval_loss_function(self, *args, **kwargs):

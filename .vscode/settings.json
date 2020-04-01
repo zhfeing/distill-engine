@@ -4,5 +4,6 @@
         "ilsvrc",
         "numel"
     ],
-    "python.pythonPath": "~/programs/miniconda3/bin/python"
+    "python.pythonPath": "E:\\Program\\Miniconda3\\python.exe",
+    "python.linting.flake8Enabled": true
 }

@@ -19,25 +19,25 @@ class GoogLeNetStudentWrapper(BaseStudentWrapper):
 
     @torch.no_grad()
     def eval_loss_function(self, *args, **kwargs):
-        """Required parameters: 
-        y_s: detached student true predict, 
+        """Required parameters:
+        y_s: detached student true predict,
         y_true: detached ground truth"""
         y_s = kwargs["y_s"]
         y_true = kwargs["y_true"]
         return nn.CrossEntropyLoss(reduction='mean')(y_s, y_true)
 
     def distill_loss_function(self, *args, **kwargs):
-        """Required parameters: 
-        y_t: detached teacher output, 
-        y_s: student output, 
+        """Required parameters:
+        y_t: detached teacher output,
+        y_s: student output,
         y_true: ground truth"""
         y_t = kwargs["y_t"]
         y_s = kwargs["y_s"]
-        y_true = kwargs["y_true"]      
+        y_true = kwargs["y_true"]
         loss_p1 = self._distill_loss(y_s[0], y_t, y_true)
         loss_p2 = self._distill_loss(y_s[1], y_t, y_true)
         loss_p3 = self._distill_loss(y_s[2], y_t, y_true)
-        loss = loss_p1 + 0.3*loss_p2 + 0.3*loss_p3
+        loss = loss_p1 + 0.3 * loss_p2 + 0.3 * loss_p3
         return loss
 
 
@@ -52,21 +52,21 @@ class ResnetStudentWrapper(BaseStudentWrapper):
 
     @torch.no_grad()
     def eval_loss_function(self, *args, **kwargs):
-        """Required parameters: 
-        y_s: detached student true predict, 
+        """Required parameters:
+        y_s: detached student true predict,
         y_true: detached ground truth"""
         y_s = kwargs["y_s"]
         y_true = kwargs["y_true"]
         return nn.CrossEntropyLoss(reduction='mean')(y_s, y_true)
 
     def distill_loss_function(self, *args, **kwargs):
-        """Required parameters: 
-        y_t: detached teacher output, 
-        y_s: student output, 
+        """Required parameters:
+        y_t: detached teacher output,
+        y_s: student output,
         y_true: ground truth"""
         y_t = kwargs["y_t"]
         y_s = kwargs["y_s"]
-        y_true = kwargs["y_true"]      
+        y_true = kwargs["y_true"]
         loss = self._distill_loss(y_s, y_t, y_true)
         return loss
 
@@ -82,21 +82,21 @@ class ResnetTeacherWrapper(BaseTeacherWrapper):
 
 # define callbacks
 class TrainCallback(callback.BaseCallback):
-    """Callback requires keys: 
+    """Callback requires keys:
         "logs" contains keys: "ep", "step", "iter", "total_epoch", "total_step"
         "tensors" contains keys: "x", "y_true", "y_s", "y_t", "loss"
         "student_wrapper": studen model wrapper
         "states" contain keys: "optimizer"
     """
     def __init__(
-        self, 
-        save_model_dir: str,         
-        version: str,                
-        check_freq: int, 
-        check_valid_freq: int, 
-        recover_checkpoint: dict, 
-        message_logger: MessageLogger, 
-        port=9870, 
+        self,
+        save_model_dir: str,
+        version: str,
+        check_freq: int,
+        check_valid_freq: int,
+        recover_checkpoint: dict,
+        message_logger: MessageLogger,
+        port=9870,
     ):
         """Args:
             save_model_dir: directory to save models
@@ -121,17 +121,17 @@ class TrainCallback(callback.BaseCallback):
 
         self._message_logger = message_logger
         self._loss_logger = VisdomPlotLogger(
-            plot_type="line", 
-            env=env, 
-            win="loss", 
-            port=port, 
+            plot_type="line",
+            env=env,
+            win="loss",
+            port=port,
             opts=dict(title="loss")
         )
         self._acc_logger = VisdomPlotLogger(
-            plot_type="line", 
-            env=env, 
-            win="acc", 
-            port=port, 
+            plot_type="line",
+            env=env,
+            win="acc",
+            port=port,
             opts=dict(title="acc")
         )
 
@@ -165,15 +165,15 @@ class TrainCallback(callback.BaseCallback):
         states = kwargs["states"]
         # save checkpoint
         checkpoint = dict(
-            ep=logs["ep"], 
-            iter=logs["iter"], 
-            optimizer=states["optimizer"], 
+            ep=logs["ep"],
+            iter=logs["iter"],
+            optimizer=states["optimizer"],
             student_model=student_wrapper.model.state_dict()
         )
         torch.save(
-            checkpoint, 
+            checkpoint,
             utils.join(
-                self._save_model_dir, 
+                self._save_model_dir,
                 "ckpt_epoch_{}_version_{}.pth".format(logs["ep"], self._version)
             )
         )
@@ -183,14 +183,14 @@ class TrainCallback(callback.BaseCallback):
         # take a look per check_freq
         if logs["iter"] % self._check_freq == self._check_freq - 1:
             self._message_logger.log("[info] epoch: {:2}/{:2} step: {:4}/{:4} iteration: {:5}".format(
-                logs["ep"], 
-                logs["total_epoch"], 
-                logs["step"], 
-                logs["total_step"], 
+                logs["ep"],
+                logs["total_epoch"],
+                logs["step"],
+                logs["total_step"],
                 logs["iter"]
             ))
 
-    def on_batch_end(self, **kwargs): 
+    def on_batch_end(self, **kwargs):
         logs = kwargs["logs"]
         tensors = kwargs["tensors"]
         student_wrapper = kwargs["student_wrapper"]
@@ -201,19 +201,19 @@ class TrainCallback(callback.BaseCallback):
             pred = torch.max(student_wrapper.get_true_predict(tensors["y_s"]), 1)[1]
             acc = (pred == tensors["y_true"]).sum().float() / batch_size
             self._message_logger.log("loss: {:.5f}, acc: {:.4f}".format(
-                tensors["loss"], 
+                tensors["loss"],
                 acc
             ))
             self._loss_logger.log(logs["iter"], tensors["loss"].item(), name="train loss")
             # self._acc_logger.log(logs["iter"], acc.item(), name="train acc")
         if logs["iter"] % self._check_valid_freq == self._check_valid_freq - 1:
             loss, acc = utils.eval_model(
-                student_wrapper=student_wrapper, 
-                data_loader=valid_loader, 
+                student_wrapper=student_wrapper,
+                data_loader=valid_loader,
                 device=tensors["x"].device
             )
             self._message_logger.log("[info] validate loss: {:.5f}, acc: {:.4f}".format(
-                loss, 
+                loss,
                 acc
             ))
             self._loss_logger.log(logs["iter"], loss, name="valid loss")

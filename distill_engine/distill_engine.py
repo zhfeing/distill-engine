@@ -8,7 +8,7 @@ from model_zoo import total_params
 
 class Distillation(object):
     def __init__(
-        self, 
+        self,
         teacher_wrapper: BaseTeacherWrapper,  # wrapper of teacher model on cpu
         student_wrapper: BaseStudentWrapper,  # wrapper of student model on cpu
         train_loader: DataLoader,       # DataLoader of train set, by default (x, y) on cpu
@@ -41,19 +41,19 @@ class Distillation(object):
         }
         self._cb = cb
         self._device = device
-        print( 
-            "[info] initial distill engine done, ", 
+        print(
+            "[info] initial distill engine done, ",
             "teacher model has {} parameters and student model has {} parameters".format(
-                total_params(self._t.model), 
+                total_params(self._t.model),
                 total_params(self._s.model)
             )
         )
-    
-    def train(self):  
+
+    def train(self):
         # call on_train_begin
         self._cb.on_train_begin(
-            logs=self._logs, 
-            student_wrapper=self._s, 
+            logs=self._logs,
+            student_wrapper=self._s,
             states=self._states
         )
 
@@ -65,7 +65,7 @@ class Distillation(object):
         while self._logs["ep"] < self._logs["total_epoch"]:
             # call on_epoch_begin
             self._cb.on_epoch_begin(
-                logs=self._logs, 
+                logs=self._logs,
                 states=self._states
             )
             for self._logs["step"], (self._tensors["x"], self._tensors["y_true"]) \
@@ -101,15 +101,15 @@ class Distillation(object):
 
                 # call on_batch_end
                 self._cb.on_batch_end(
-                    logs=self._logs, 
-                    tensors=self._tensors, 
-                    student_wrapper=self._s, 
+                    logs=self._logs,
+                    tensors=self._tensors,
+                    student_wrapper=self._s,
                     valid_loader=self._valid_loader
                 )
             # call on_epoch_end
             self._cb.on_epoch_end(
-                logs=self._logs, 
-                student_wrapper=self._s, 
+                logs=self._logs,
+                student_wrapper=self._s,
                 states=self._states
             )
             self._logs["ep"] += 1
