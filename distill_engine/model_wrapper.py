@@ -9,7 +9,7 @@ class BaseModelWrapper(abc.ABC):
 
     # get model
     @property
-    def model(self):
+    def model(self) -> Module:
         return self._model
 
     def __call__(self, *x):
@@ -17,7 +17,7 @@ class BaseModelWrapper(abc.ABC):
         return self._model(*x)
 
     @abc.abstractmethod
-    def get_true_predict(self, predit):
+    def get_true_predict(self, raw_output):
         """return true prediction from its output"""
         pass
 

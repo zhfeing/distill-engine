@@ -1,5 +1,5 @@
-from . import callback
-from .model_wrapper import BaseStudentWrapper, BaseTeacherWrapper
+from distill_engine import callback
+from distill_engine.model_wrapper import BaseStudentWrapper, BaseTeacherWrapper
 from torch.utils.data import DataLoader
 from torch.optim import Optimizer
 import torch
@@ -33,11 +33,12 @@ class Distillation(object):
             "x": None,              # the same input of student and teacher models
             "y_true": None,         # ground truth
             "y_s": None,            # student output(undetached)
-            "y_t": None,            # teacher output(undetached)
+            "y_t": None,            # teacher output(no grad)
             "loss": None            # loss of a batch(undetached)
         }
         self._states = {
-            "optimizer": optimizer  # optimizer of student model
+            "student": self._s.model,   # student model
+            "optimizer": optimizer      # optimizer of student model
         }
         self._cb = cb
         self._device = device
@@ -53,7 +54,6 @@ class Distillation(object):
         # call on_train_begin
         self._cb.on_train_begin(
             logs=self._logs,
-            student_wrapper=self._s,
             states=self._states
         )
 
@@ -103,13 +103,12 @@ class Distillation(object):
                 self._cb.on_batch_end(
                     logs=self._logs,
                     tensors=self._tensors,
-                    student_wrapper=self._s,
+                    states=self._states,
                     valid_loader=self._valid_loader
                 )
             # call on_epoch_end
             self._cb.on_epoch_end(
                 logs=self._logs,
-                student_wrapper=self._s,
                 states=self._states
             )
             self._logs["ep"] += 1

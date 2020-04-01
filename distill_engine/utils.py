@@ -2,7 +2,7 @@ import os
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from .model_wrapper import BaseStudentWrapper
+from distill_engine.model_wrapper import BaseStudentWrapper
 import tqdm
 
 
@@ -15,8 +15,8 @@ def _identical_mapping(x):
 
 @torch.no_grad()
 def eval_model(
-    student_wrapper: BaseStudentWrapper, 
-    data_loader: DataLoader, 
+    student_wrapper: BaseStudentWrapper,
+    data_loader: DataLoader,
     device: torch.device
 ):
     """
@@ -59,7 +59,7 @@ class MyDistillLoss(object):
     #     Q = torch.log_softmax(pred/self._T, dim=1)
     #     loss = F.kl_div(input=Q, target=R, reduction="batchmean")
     #     return self._T * self._T * loss
-    
+
     def _l2_loss(self, pred, target):
         loss = F.mse_loss(pred, target, reduction="mean")
         return loss
