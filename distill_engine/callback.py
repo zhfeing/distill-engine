@@ -43,7 +43,7 @@ class BaseCallback(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def on_epoch_end(self, logs: Dict[str, Any], states: Dict[str, Any]):
+    def on_epoch_end(self, logs: Dict[str, Any], states: Dict[str, Any], valid_loader: DataLoader):
         pass
 
     @abc.abstractmethod
@@ -52,10 +52,10 @@ class BaseCallback(abc.ABC):
 
     @abc.abstractmethod
     def on_batch_end(
+        self,
         logs: Dict[str, Any],
         tensors: Dict[str, Any],
-        states: Dict[str, Any],
-        valid_loader: DataLoader
+        states: Dict[str, Any]
     ):
         pass
 

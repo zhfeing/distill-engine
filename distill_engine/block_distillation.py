@@ -1,15 +1,13 @@
-from distill_engine import callback
-from distill_engine.model_wrapper import BaseStudentWrapper, BaseTeacherWrapper
+import torch
 from torch.utils.data import DataLoader
 from torch.optim import Optimizer
-import torch
+
+from distill_engine import callback
+from distill_engine.distillation import Distillation
+from distill_engine.model_wrapper import BaseStudentWrapper, BaseTeacherWrapper
 
 
-def total_params(module: torch.nn.Module):
-    return sum(p.numel() for p in module.parameters() if p.requires_grad)
-
-
-class Distillation:
+class BlockDistillation(Distillation):
     def __init__(
         self,
         teacher_wrapper: BaseTeacherWrapper,  # wrapper of teacher model on cpu
@@ -21,36 +19,15 @@ class Distillation:
         cb: callback.BaseCallback,      # callback class
         use_cuda: bool                  # whether to use cuda
     ):
-        self._t = teacher_wrapper
-        self._s = student_wrapper
-        self._train_loader = train_loader
-        self._valid_loader = valid_loader
-        self._logs = {
-            "ep": 0,                            # current training epoch id
-            "step": 0,                          # current step in an epoch
-            "iter": 0,                          # current iteration
-            "total_epoch": epoch,               # total training epoch
-            "total_step": len(train_loader),    # total steps in an epoch
-        }
-        self._tensors = {
-            "x": None,              # the same input of student and teacher models
-            "y_true": None,         # ground truth
-            "y_s": None,            # student output(undetached)
-            "y_t": None,            # teacher output(no grad)
-            "loss": None            # loss of a batch(undetached)
-        }
-        self._states = {
-            "student": self._s,         # student model
-            "optimizer": optimizer      # optimizer of student model
-        }
-        self._cb = cb
-        self._use_cuda = use_cuda
-        print(
-            "[info] initial distill engine done, ",
-            "teacher model has {} parameters and student model has {} parameters".format(
-                total_params(self._t.model),
-                total_params(self._s.model)
-            )
+        super().__init__(
+            teacher_wrapper,
+            student_wrapper,
+            train_loader,
+            valid_loader,
+            optimizer,
+            epoch,
+            cb,
+            use_cuda
         )
 
     def train(self):

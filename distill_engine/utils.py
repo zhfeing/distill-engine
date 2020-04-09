@@ -17,7 +17,7 @@ def _identical_mapping(x):
 def eval_model(
     student_wrapper: BaseStudentWrapper,
     data_loader: DataLoader,
-    device: torch.device
+    use_cuda: bool
 ):
     """
     eval_loss_function: calculate loss from output and ground truth, in the function, it will be called as :
@@ -26,7 +26,8 @@ def eval_model(
         true_pred = get_true_pred(module_output)
     detach_pred: detach pred from output, useful when model output a tuple, called as detach_pred(module_output)
     """
-    student_wrapper.model.to(device)
+    if use_cuda:
+        student_wrapper.model.cuda()
     student_wrapper.model.eval()
 
     acc = 0
@@ -34,8 +35,8 @@ def eval_model(
     num = len(data_loader)
     for x, y in tqdm.tqdm(data_loader):
         batch_size = x.size()[0]
-        x = x.to(device)
-        y = y.to(device)
+        x = x.cuda()
+        y = y.cuda()
         # get detached output
         pred = student_wrapper(x)
         pred = student_wrapper.get_true_predict(pred)
@@ -49,7 +50,7 @@ def eval_model(
     return loss.to("cpu").item(), acc.to("cpu").item()
 
 
-class MyDistillLoss(object):
+class DistillLoss(object):
     def __init__(self, alpha):
         self._alpha = alpha
 
