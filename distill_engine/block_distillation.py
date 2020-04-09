@@ -2,21 +2,21 @@ import torch
 from torch.utils.data import DataLoader
 from torch.optim import Optimizer
 
-from distill_engine import callback
+from distill_engine.callback import BaseBlockCallback
 from distill_engine.distillation import Distillation
-from distill_engine.model_wrapper import BaseStudentWrapper, BaseTeacherWrapper
+from distill_engine.model_wrapper import BaseBlockStudentWarpper, BaseBlockTeacherWarpper
 
 
 class BlockDistillation(Distillation):
     def __init__(
         self,
-        teacher_wrapper: BaseTeacherWrapper,  # wrapper of teacher model on cpu
-        student_wrapper: BaseStudentWrapper,  # wrapper of student model on cpu
+        teacher_wrapper: BaseBlockTeacherWarpper,  # wrapper of teacher model on cpu
+        student_wrapper: BaseBlockStudentWarpper,  # wrapper of student model on cpu
         train_loader: DataLoader,       # DataLoader of train set, by default (x, y) on cpu
         valid_loader: DataLoader,       # DataLoader of valid set, by default (x, y) on cpu
         optimizer: Optimizer,           # optimizer of student model
         epoch: int,                     # total training epoch
-        cb: callback.BaseCallback,      # callback class
+        cb: BaseBlockCallback,          # callback class
         use_cuda: bool                  # whether to use cuda
     ):
         super().__init__(
@@ -29,6 +29,7 @@ class BlockDistillation(Distillation):
             cb,
             use_cuda
         )
+        self._tensors["teacher_block_outputs"] = None
 
     def train(self):
         # call on_train_begin
@@ -60,15 +61,13 @@ class BlockDistillation(Distillation):
                 # get raw undetached output of teacher and student
                 with torch.no_grad():
                     self._tensors["y_t"] = self._t(self._tensors["x"])
-                self._tensors["y_s"] = self._s(self._tensors["x"])
+                    self._tensors["teacher_block_outputs"] = self._t.outputs
+
+                s_inputs = self._cb.get_student_inputs(self._tensors)
+                self._tensors["y_s"] = self._s(s_inputs)
 
                 # calculate undetached distill loss
-                self._tensors["loss"] = self._s.distill_loss_function(
-                    x=self._tensors["x"],
-                    y_t=self._t.get_true_predict(self._tensors["y_t"]),    # detached y_t
-                    y_s=self._tensors["y_s"],                              # undetached y_s
-                    y_true=self._tensors["y_true"]
-                )
+                self._tensors["loss"] = self._s.distill_loss_function(self._tensors)
                 # bp
                 self._states["optimizer"].zero_grad()
                 self._tensors["loss"].backward()

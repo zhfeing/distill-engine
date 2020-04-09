@@ -67,5 +67,13 @@ class BaseBlockStudentWarpper(BaseStudentWrapper):
     def __init__(self, model: Module):
         super().__init__(model)
 
+    # loss function used when distilling
+    @abc.abstractmethod
+    def distill_loss_function(self, tensors: Dict[str, Tensor]):
+        pass
 
+    # loss function used when evaluating
+    @abc.abstractclassmethod
+    def eval_loss_function(self, *args, **kwargs):
+        pass
 

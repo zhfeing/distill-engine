@@ -27,9 +27,6 @@ Copied from distillation:
 
 
 class BaseCallback(abc.ABC):
-    def __init__(self):
-        pass
-
     @abc.abstractmethod
     def on_train_begin(self, logs: Dict[str, Any], states: Dict[str, Any]):
         pass
@@ -58,5 +55,16 @@ class BaseCallback(abc.ABC):
         states: Dict[str, Any]
     ):
         pass
+
+
+class BaseBlockCallback(BaseCallback):
+    @abc.abstractmethod
+    def get_student_inputs(
+        self,
+        tensors: Dict[str, Any]
+    ):
+        pass
+
+
 
 
