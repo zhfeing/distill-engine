@@ -59,12 +59,14 @@ class BaseCallback(abc.ABC):
 
 class BaseBlockCallback(BaseCallback):
     @abc.abstractmethod
-    def get_student_inputs(
+    def on_batch_begin(
         self,
-        tensors: Dict[str, Any]
+        logs: Dict[str, Any],
+        states: Dict[str, Any]
     ):
         pass
 
-
-
+    @abc.abstractmethod
+    def on_epoch_begin(self, logs: Dict[str, Any], states: Dict[str, Any]):
+        pass
 

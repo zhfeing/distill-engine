@@ -1,5 +1,5 @@
 import abc
-from typing import Iterable, Dict
+from typing import Iterable, Dict, List
 
 from torch import Tensor
 from torch.nn import Module
@@ -12,7 +12,7 @@ class BaseModelWrapper(abc.ABC):
 
     def __call__(self, *x):
         """simply return model output"""
-        return self._model(*x)
+        return self.model(*x)
 
     @abc.abstractmethod
     def get_true_predict(self, raw_output):
@@ -40,7 +40,7 @@ class BaseStudentWrapper(BaseModelWrapper):
         pass
 
 
-class BaseBlockTeacherWarpper(BaseModelWrapper):
+class BaseBlockTeacherWrapper(BaseModelWrapper):
     def __init__(self, model: Module, divide_layers: Iterable[str]):
         """
         Args:
@@ -52,18 +52,18 @@ class BaseBlockTeacherWarpper(BaseModelWrapper):
         model_dict: Dict[str, Module] = dict(model.named_modules())
 
         # register hooks
-        self.outputs: Dict[str, Tensor] = dict()
+        self.outputs: List[Tensor] = list()
         for layer_name in self.divide_layers:
             module = model_dict[layer_name]
             setattr(module, "name", layer_name)
 
             def hook(module, input, output):
-                self.outputs[module.name] = output
+                self.outputs.append(output)
 
             module.register_forward_hook(hook)
 
 
-class BaseBlockStudentWarpper(BaseStudentWrapper):
+class BaseBlockStudentWrapper(BaseStudentWrapper):
     def __init__(self, model: Module):
         super().__init__(model)
 
@@ -75,5 +75,13 @@ class BaseBlockStudentWarpper(BaseStudentWrapper):
     # loss function used when evaluating
     @abc.abstractclassmethod
     def eval_loss_function(self, *args, **kwargs):
+        pass
+
+    @abc.abstractproperty
+    def train_block(self) -> int:
+        pass
+
+    @train_block.setter
+    def train_block(self, block_id: int):
         pass
 

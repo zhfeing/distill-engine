@@ -4,14 +4,14 @@ from torch.optim import Optimizer
 
 from distill_engine.callback import BaseBlockCallback
 from distill_engine.distillation import Distillation
-from distill_engine.model_wrapper import BaseBlockStudentWarpper, BaseBlockTeacherWarpper
+from distill_engine.model_wrapper import BaseBlockStudentWrapper, BaseBlockTeacherWrapper
 
 
 class BlockDistillation(Distillation):
     def __init__(
         self,
-        teacher_wrapper: BaseBlockTeacherWarpper,  # wrapper of teacher model on cpu
-        student_wrapper: BaseBlockStudentWarpper,  # wrapper of student model on cpu
+        teacher_wrapper: BaseBlockTeacherWrapper,  # wrapper of teacher model on cpu
+        student_wrapper: BaseBlockStudentWrapper,  # wrapper of student model on cpu
         train_loader: DataLoader,       # DataLoader of train set, by default (x, y) on cpu
         valid_loader: DataLoader,       # DataLoader of valid set, by default (x, y) on cpu
         optimizer: Optimizer,           # optimizer of student model
@@ -60,11 +60,12 @@ class BlockDistillation(Distillation):
 
                 # get raw undetached output of teacher and student
                 with torch.no_grad():
-                    self._tensors["y_t"] = self._t(self._tensors["x"])
+                    y_t = self._t(self._tensors["x"])
                     self._tensors["teacher_block_outputs"] = self._t.outputs
+                    self._tensors["teacher_block_outputs"].append(y_t)
+                    self._tensors["y_t"] = self._tensors["teacher_block_outputs"][self._s.train_block]
 
-                s_inputs = self._cb.get_student_inputs(self._tensors)
-                self._tensors["y_s"] = self._s(s_inputs)
+                self._tensors["y_s"] = self._s(self._tensors["x"])
 
                 # calculate undetached distill loss
                 self._tensors["loss"] = self._s.distill_loss_function(self._tensors)
@@ -74,7 +75,8 @@ class BlockDistillation(Distillation):
                 self._states["optimizer"].step()
                 # update iteration
                 self._logs["iter"] += 1
-
+                # clear teacher outputs
+                self._t.outputs.clear()
                 # call on_batch_end
                 self._cb.on_batch_end(
                     logs=self._logs,
@@ -88,6 +90,7 @@ class BlockDistillation(Distillation):
                 valid_loader=self._valid_loader
             )
             self._logs["ep"] += 1
+
         # call on_train_end
         self._cb.on_train_end()
 
