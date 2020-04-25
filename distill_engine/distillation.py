@@ -57,7 +57,8 @@ class Distillation:
         # call on_train_begin
         self._cb.on_train_begin(
             logs=self._logs,
-            states=self._states
+            states=self._states,
+            train_loader=self._train_loader
         )
         self._t.model.eval()
 

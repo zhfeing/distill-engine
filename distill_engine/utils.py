@@ -1,10 +1,8 @@
 import os
 import tqdm
-from typing import Iterable
-import logging
+from typing import Tuple
 
 import torch
-from torch import Tensor
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
@@ -23,7 +21,7 @@ def eval_model(
     student_wrapper: BaseStudentWrapper,
     data_loader: DataLoader,
     use_cuda: bool
-):
+) -> Tuple[float]:
     """
     eval_loss_function: calculate loss from output and ground truth, in the function, it will be called as :
         eval_loss_function(pred, label, x), which pred comes from model output

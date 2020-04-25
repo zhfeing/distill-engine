@@ -28,7 +28,7 @@ Copied from distillation:
 
 class BaseCallback(abc.ABC):
     @abc.abstractmethod
-    def on_train_begin(self, logs: Dict[str, Any], states: Dict[str, Any]):
+    def on_train_begin(self, logs: Dict[str, Any], states: Dict[str, Any], train_loader: DataLoader):
         pass
 
     @abc.abstractmethod
